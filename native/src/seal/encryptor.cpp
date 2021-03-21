@@ -242,6 +242,11 @@ namespace seal
             // Result gets added into the c_0 term of ciphertext (c_0,c_1).
             util::multiply_add_plain_with_scaling_variant(
                 plain, *context_->first_context_data(), destination.data());
+
+            if (scheme == scheme_type::CKKS_FV)
+            {
+                destination.scale() = plain.scale();
+            }
         }
         else if (scheme == scheme_type::CKKS)
         {
