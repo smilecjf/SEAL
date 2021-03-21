@@ -264,6 +264,84 @@ namespace seal
 #endif
     }
 
+    void Evaluator::sub_ckks_fv_inplace(Ciphertext &encrypted1, const Ciphertext &encrypted2)
+    {
+        // Verify parameters.
+        if (!is_metadata_valid_for(encrypted1, context_) || !is_buffer_valid(encrypted1))
+        {
+            throw invalid_argument("encrypted1 is not valid for encryption parameters");
+        }
+        if (!is_metadata_valid_for(encrypted2, context_) | !is_buffer_valid(encrypted2))
+        {
+            throw invalid_argument("encrypted2 is not valid for encryption parameters");
+        }
+        if (encrypted1.parms_id() != encrypted2.parms_id())
+        {
+            throw invalid_argument("encrypted1 and encrypted2 parameter mismatch");
+        }
+        if (encrypted1.is_ntt_form() != encrypted2.is_ntt_form())
+        {
+            throw invalid_argument("NTT form mismatch");
+        }
+
+        auto &context_data = *context_->get_context_data(encrypted1.parms_id());
+        auto &parms = context_data.parms();
+        if (parms.scheme() != scheme_type::CKKS_FV)
+        {
+            throw invalid_argument("unsupported scheme");
+        }
+
+        // Extract encryption parameters.
+        auto &coeff_modulus = parms.coeff_modulus();
+        size_t coeff_count = parms.poly_modulus_degree();
+        size_t coeff_mod_count = coeff_modulus.size();
+        size_t encrypted1_size = encrypted1.size();
+        size_t encrypted2_size = encrypted2.size();
+        size_t max_count = max(encrypted1_size, encrypted2_size);
+        size_t min_count = min(encrypted1_size, encrypted2_size);
+
+        // Check size.
+        if (!product_fits_in(max_count, coeff_count))
+        {
+            throw logic_error("invalid paramters");
+        }
+
+        // Prepare destination.
+        encrypted1.resize(context_, context_data.parms_id(), max_count);
+
+        // Subtract polynomials.
+        for (size_t j = 0; j < min_count; j++)
+        {
+            uint64_t *encrypted1_ptr = encrypted1.data(j);
+            const uint64_t *encrypted2_ptr = encrypted2.data(j);
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                sub_poly_poly_coeffmod(encrypted1_ptr + (i * coeff_count),
+                    encrypted2_ptr + (i * coeff_count), coeff_count, coeff_modulus[i],
+                    encrypted1_ptr + (i * coeff_count));
+            }
+        }
+
+        // If encrypted2 has larger count, negate remaining entries
+        if (encrypted1_size < encrypted2_size)
+        {
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                negate_poly_coeffmod(encrypted2.data(encrypted1_size) + (i * coeff_count),
+                    coeff_count * (encrypted2_size - encrypted1_size), coeff_modulus[i],
+                    encrypted1.data(encrypted1_size) + (i * coeff_count));
+            }
+        }
+
+#ifdef SEAL_THROW_ON_TRANSPARENT_CIPHERTEXT
+        // Transparent ciphertext output is not allowed
+        if (encrypted1.is_transparent())
+        {
+            throw logic_error("result ciphertext is transparent");
+        }
+#endif
+    }
+
     void Evaluator::multiply_inplace(Ciphertext &encrypted1,
         const Ciphertext &encrypted2, MemoryPoolHandle pool)
     {
@@ -2787,5 +2865,42 @@ namespace seal
                     encrypted_ptr + j * coeff_count);
             }
         }
+    }
+
+    void Evaluator::transform_to_lowest_ckks_inplace(Ciphertext &encrypted_fv)
+    {
+        // Verify parameters.
+        if (!is_metadata_valid_for(encrypted_fv, context_) || !is_buffer_valid(encrypted_fv))
+        {
+            throw invalid_argument("encrypted_fv is not valid for encryption parameters");
+        }
+
+        auto context_data = context_->get_context_data(encrypted_fv.parms_id());
+        auto &parms = context_data->parms();
+        if (!context_data)
+        {
+            throw invalid_argument("encrypted_fv is not valid for encryption parameters");
+        }
+        if (parms.scheme() != scheme_type::CKKS_FV)
+        {
+            throw invalid_argument("unsupported scheme");
+        }
+        if (encrypted_fv.is_ntt_form())
+        {
+            throw invalid_argument("encrypted_fv is already in NTT form");
+        }
+
+        // Rescale to the lowest level
+        double curr_scale = encrypted_fv.scale();
+        auto last_parms_id = context_->last_parms_id();
+        transform_to_ntt_inplace(encrypted_fv);
+        rescale_to_inplace(encrypted_fv, last_parms_id);
+
+        // Set scale
+        auto q0 = parms.coeff_modulus()[0].value();
+        auto plain_modulus = parms.plain_modulus().value();
+        double q0_div_t = static_cast<double>(q0) / static_cast<double>(plain_modulus);
+
+        encrypted_fv.scale() = curr_scale * q0_div_t;
     }
 }

@@ -198,6 +198,21 @@ namespace seal
 
         /**
         Subtracts two ciphertexts. This function computes the difference of encrypted1
+        and encrypted2, and stores the result in encrypted1. This function only works
+        on CKKS_FV scheme, and it allow ciphertexts of different scale.
+
+        @param[in] encrytped1 The ciphertext to subtract from
+        @param[in] encrypted2 The ciphertext to subtract
+        @throws std::invalid_argument if encrypted1 or encrypted2 is not valid for the
+        encryption parameters
+        @throws std::invalid_argument if encrytped1 or encrypted2 are in different
+        NTT forms
+        @throws std::logic_error if result ciphertext is transparent
+        */
+        void sub_ckks_fv_inplace(Ciphertext &encrypted1, const Ciphertext &encrypted2);
+
+        /**
+        Subtracts two ciphertexts. This function computes the difference of encrypted1
         and encrypted2 and stores the result in the destination parameter.
 
         @param[in] encrypted1 The ciphertext to subtract from
@@ -1316,6 +1331,39 @@ namespace seal
         {
             destination = encrypted;
             complex_conjugate_inplace(destination, galois_keys, std::move(pool));
+        }
+
+        /**
+        Transforms a FV ciphertext to CKKS ciphertext of the lowest level.
+        Scale of the transformed ciphertext is regarded as its previous scale
+        multiplied with q0/t, which approximates scaling factor in FV scheme.
+
+        @param[in] encrypted_fv The FV ciphertext to transform
+        @throws std::invalid_argument if encrypted_fv is not valid for encryption
+        parameters
+        @throws std::invalid_argument if scheme is not scheme_type::CKKS_FV
+        @throws std::invalid_argument if encrypted_fv is already in NTT form
+        */
+        void transform_to_lowest_ckks_inplace(Ciphertext &encrypted_fv);
+
+        /**
+        Transforms a FV ciphertext to CKKS ciphertext of the lowest level.
+        Scale of the transformed ciphertext is regarded as its previous scale
+        multiplied with q0/t, which approximates scaling factor in FV scheme.
+        The result is stored in the destination parameter.
+
+        @param[in] encrypted_fv The FV ciphertext to transform
+        @param[out] destination The ciphertext to overwrite with the transformed result
+        @throws std::invalid_argument if encrypted_fv is not valid for encryption
+        parameters
+        @throws std::invalid_argument if scheme is not scheme_type::CKKS_FV
+        @throws std::invalid_argument if encrypted_fv is already in NTT form
+        */
+        inline void transform_to_lowest_ckks(const Ciphertext &encrypted_fv,
+            Ciphertext &destination)
+        {
+            destination = encrypted_fv;
+            transform_to_lowest_ckks_inplace(destination);
         }
 
         /**
