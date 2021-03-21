@@ -30,7 +30,10 @@ namespace seal
         BFV = 0x1,
 
         // Cheon-Kim-Kim-Song scheme
-        CKKS = 0x2
+        CKKS = 0x2,
+
+        // CKKS-FV hybrid scheme
+        CKKS_FV = 0x3
     };
 
     /**
@@ -221,8 +224,8 @@ namespace seal
         */
         inline void set_plain_modulus(const SmallModulus &plain_modulus)
         {
-            // Check that scheme is BFV
-            if (scheme_ != scheme_type::BFV && !plain_modulus.is_zero())
+            // Check that scheme is BFV or CKKS_FV
+            if (scheme_ != scheme_type::BFV && scheme_ != scheme_type::CKKS_FV && !plain_modulus.is_zero())
             {
                 throw std::logic_error("plain_modulus is not supported for this scheme");
             }
