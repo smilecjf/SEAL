@@ -133,7 +133,8 @@ namespace seal
         {
             is_ntt_form = true;
         }
-        else if (parms.scheme() != scheme_type::BFV)
+        else if (parms.scheme() != scheme_type::BFV &&
+                 parms.scheme() != scheme_type::CKKS_FV)
         {
             throw invalid_argument("unsupported scheme");
         }
@@ -227,7 +228,7 @@ namespace seal
         }
 
         auto scheme = context_->key_context_data()->parms().scheme();
-        if (scheme == scheme_type::BFV)
+        if (scheme == scheme_type::BFV || scheme == scheme_type::CKKS_FV)
         {
             if (plain.is_ntt_form())
             {
