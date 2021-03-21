@@ -1187,7 +1187,8 @@ namespace seal
         {
             throw invalid_argument("BFV encrypted cannot be in NTT form");
         }
-        if (context_data_ptr->parms().scheme() == scheme_type::CKKS &&
+        if ((context_data_ptr->parms().scheme() == scheme_type::CKKS ||
+            context_data_ptr->parms().scheme() == scheme_type::CKKS_FV) &&
             !encrypted.is_ntt_form())
         {
             throw invalid_argument("CKKS encrypted must be in NTT form");
@@ -1219,7 +1220,8 @@ namespace seal
         // In CKKS need to transform away from NTT form
         Ciphertext encrypted_copy(pool);
         encrypted_copy = encrypted;
-        if (next_parms.scheme() == scheme_type::CKKS)
+        if (next_parms.scheme() == scheme_type::CKKS ||
+            next_parms.scheme() == scheme_type::CKKS_FV)
         {
             transform_from_ntt_inplace(encrypted_copy);
         }
@@ -1273,7 +1275,8 @@ namespace seal
             destination.data());
 
         // In CKKS need to transform back to NTT form
-        if (next_parms.scheme() == scheme_type::CKKS)
+        if (next_parms.scheme() == scheme_type::CKKS ||
+            next_parms.scheme() == scheme_type::CKKS_FV)
         {
             transform_to_ntt_inplace(destination);
 
@@ -1519,6 +1522,7 @@ namespace seal
             throw invalid_argument("unsupported operation for scheme type");
 
         case scheme_type::CKKS:
+        case scheme_type::CKKS_FV:
             // Modulus switching with scaling
             mod_switch_scale_to_next(encrypted, destination, move(pool));
             break;
@@ -1569,6 +1573,7 @@ namespace seal
             throw invalid_argument("unsupported operation for scheme type");
 
         case scheme_type::CKKS:
+        case scheme_type::CKKS_FV:
             while (encrypted.parms_id() != parms_id)
             {
                 // Modulus switching with scaling

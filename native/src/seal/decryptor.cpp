@@ -68,6 +68,7 @@ namespace seal
             return;
 
         case scheme_type::CKKS:
+        case scheme_type::CKKS_FV:
             ckks_decrypt(encrypted, destination, pool_);
             return;
 
