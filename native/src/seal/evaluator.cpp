@@ -2468,7 +2468,8 @@ namespace seal
         // DO NOT CHANGE EXECUTION ORDER OF FOLLOWING SECTION
         // BEGIN: Apply Galois for each ciphertext
         // Execution order is sensitive, since apply_galois is not inplace!
-        if (parms.scheme() == scheme_type::BFV)
+        if (parms.scheme() == scheme_type::BFV ||
+            parms.scheme() == scheme_type::CKKS_FV)
         {
             // !!! DO NOT CHANGE EXECUTION ORDER!!!
             for (size_t i = 0; i < coeff_mod_count; i++)

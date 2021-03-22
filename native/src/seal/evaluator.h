@@ -1064,7 +1064,7 @@ namespace seal
         @param[in] steps The number of steps to rotate (negative left, positive right)
         @param[in] galois_keys The Galois keys
         @param[in] pool The MemoryPoolHandle pointing to a valid memory pool
-        @throws std::logic_error if scheme is not scheme_type::BFV
+        @throws std::logic_error if scheme is not scheme_type::BFV or scheme_type::CKKS_FV
         @throws std::logic_error if the encryption parameters do not support batching
         @throws std::invalid_argument if encrypted or galois_keys is not valid for
         the encryption parameters
@@ -1082,7 +1082,8 @@ namespace seal
             int steps, const GaloisKeys &galois_keys,
             MemoryPoolHandle pool = MemoryManager::GetPool())
         {
-            if (context_->key_context_data()->parms().scheme() != scheme_type::BFV)
+            auto scheme = context_->key_context_data()->parms().scheme();
+            if (scheme != scheme_type::BFV && scheme != scheme_type::CKKS_FV)
             {
                 throw std::logic_error("unsupported scheme");
             }
@@ -1104,7 +1105,7 @@ namespace seal
         @param[in] galois_keys The Galois keys
         @param[out] destination The ciphertext to overwrite with the rotated result
         @param[in] pool The MemoryPoolHandle pointing to a valid memory pool
-        @throws std::logic_error if scheme is not scheme_type::BFV
+        @throws std::logic_error if scheme is not scheme_type::BFV or scheme_type::CKKS_FV
         @throws std::logic_error if the encryption parameters do not support batching
         @throws std::invalid_argument if encrypted or galois_keys is not valid for
         the encryption parameters
@@ -1139,7 +1140,7 @@ namespace seal
         @param[in] galois_keys The Galois keys
         @param[out] destination The ciphertext to overwrite with the rotated result
         @param[in] pool The MemoryPoolHandle pointing to a valid memory pool
-        @throws std::logic_error if scheme is not scheme_type::BFV
+        @throws std::logic_error if scheme is not scheme_type::BFV or scheme_type::CKKS_FV
         @throws std::logic_error if the encryption parameters do not support batching
         @throws std::invalid_argument if encrypted or galois_keys is not valid for
         the encryption parameters
@@ -1156,7 +1157,8 @@ namespace seal
             const GaloisKeys &galois_keys,
             MemoryPoolHandle pool = MemoryManager::GetPool())
         {
-            if (context_->key_context_data()->parms().scheme() != scheme_type::BFV)
+            auto scheme = context_->key_context_data()->parms().scheme();
+            if (scheme != scheme_type::BFV && scheme != scheme_type::CKKS_FV)
             {
                 throw std::logic_error("unsupported scheme");
             }
@@ -1176,7 +1178,7 @@ namespace seal
         @param[in] galois_keys The Galois keys
         @param[out] destination The ciphertext to overwrite with the rotated result
         @param[in] pool The MemoryPoolHandle pointing to a valid memory pool
-        @throws std::logic_error if scheme is not scheme_type::BFV
+        @throws std::logic_error if scheme is not scheme_type::BFV or scheme_type::CKKS_FV
         @throws std::logic_error if the encryption parameters do not support batching
         @throws std::invalid_argument if encrypted or galois_keys is not valid for
         the encryption parameters
