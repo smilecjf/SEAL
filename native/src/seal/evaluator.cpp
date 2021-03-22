@@ -791,6 +791,7 @@ namespace seal
         switch (context_data_ptr->parms().scheme())
         {
         case scheme_type::BFV:
+        case scheme_type::CKKS_FV:
             bfv_square(encrypted, move(pool));
             break;
 
