@@ -2841,7 +2841,8 @@ namespace seal
                         local_small_poly.get(),
                         small_ntt_tables[j]);
                 }
-                else if (scheme == scheme_type::BFV)
+                else if (scheme == scheme_type::BFV ||
+                         scheme == scheme_type::CKKS_FV)
                 {
                     inverse_ntt_negacyclic_harvey(
                         temp_poly_ptr,
