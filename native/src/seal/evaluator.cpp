@@ -363,6 +363,7 @@ namespace seal
         switch (context_data_ptr->parms().scheme())
         {
         case scheme_type::BFV:
+        case scheme_type::CKKS_FV:
             bfv_multiply(encrypted1, encrypted2, pool);
             break;
 
@@ -1831,6 +1832,7 @@ namespace seal
         switch (parms.scheme())
         {
         case scheme_type::BFV:
+        case scheme_type::CKKS_FV:
         {
             multiply_add_plain_with_scaling_variant(
                 plain, context_data, encrypted.data());
