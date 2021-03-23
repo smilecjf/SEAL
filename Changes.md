@@ -1,5 +1,32 @@
 # List of Changes
 
+## Version 3.4.5-ckks-fv
+
+### New Features
+In this version, a new scheme type `scheme_type::CKKS_FV` is added. The followings are description
+of CKKS_FV scheme.
+- Context data contains the information of FV context together with upper half increment information
+of CKKS context.
+- The following features/classes work in the same as `scheme_type::BFV`.
+  - `BatchEncoder`
+  - `Encryptor::encrypt_internal`
+  - `Decryptor::invariant_noise_budget`
+  - `Evaluator::add_plain_inplace` (so do `Evaluator::add_plain`)
+  - `Evaluator::multiply_inplace` (so do `Evaluator::multiply`)
+  - `Evaluator::square_inplace` (so do `Evaluator::square`)
+  - `Evaluator::switch_key_inplace` (so do relinearization operations)
+  - `Evaluator::apply_galois_inplace` (so do rotation operations)
+- The following features/classes work in the same as `scheme_type::CKKS`.
+  - `CKKSEncoder`
+  - `Decryptor::decrypt`
+  - `Evaluator::mod_switch_scale_to_next`
+  - `Evaluator::rescale_to_next`
+  - `Evaluator::rescale_to_inplace`
+- Added `Evaluator::sub_ckks_fv_inplace`, which is the same with `Evaluator::sub_inplace` except that
+it does not check scale mismatch of two input ciphertexts.
+- Added a function that transforms FV ciphertexts to corresponding CKKS ciphertexts of the lowest
+level.
+
 ## Version 3.4.5
 
 - Fixed a concurrency issue in SEALNet: the `unordered_map` storing `SEALContext` pointers was

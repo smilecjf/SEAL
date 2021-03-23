@@ -133,7 +133,8 @@ namespace seal
         {
             is_ntt_form = true;
         }
-        else if (parms.scheme() != scheme_type::BFV)
+        else if (parms.scheme() != scheme_type::BFV &&
+                 parms.scheme() != scheme_type::CKKS_FV)
         {
             throw invalid_argument("unsupported scheme");
         }
@@ -227,7 +228,7 @@ namespace seal
         }
 
         auto scheme = context_->key_context_data()->parms().scheme();
-        if (scheme == scheme_type::BFV)
+        if (scheme == scheme_type::BFV || scheme == scheme_type::CKKS_FV)
         {
             if (plain.is_ntt_form())
             {
@@ -241,6 +242,11 @@ namespace seal
             // Result gets added into the c_0 term of ciphertext (c_0,c_1).
             util::multiply_add_plain_with_scaling_variant(
                 plain, *context_->first_context_data(), destination.data());
+
+            if (scheme == scheme_type::CKKS_FV)
+            {
+                destination.scale() = plain.scale();
+            }
         }
         else if (scheme == scheme_type::CKKS)
         {

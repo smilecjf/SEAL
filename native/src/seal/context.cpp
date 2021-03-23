@@ -270,6 +270,119 @@ namespace seal
             right_shift_uint(context_data.upper_half_threshold_.get(), 1,
                 coeff_mod_count, context_data.upper_half_threshold_.get());
         }
+        /*
+        CKKS_FV context contains the information of BFV context
+        together with upper_half_increment information of CKKS context
+        */
+        else if (parms.scheme() == scheme_type::CKKS_FV)
+        {
+            /* BFV context info */
+            // Plain modulus must be at least 2 and at most 60 bits
+            if (plain_modulus.value() >> SEAL_PLAIN_MOD_MAX ||
+                !(plain_modulus.value() >> (SEAL_PLAIN_MOD_MIN - 1)))
+            {
+                context_data.qualifiers_.parameters_set = false;
+                return context_data;
+            }
+
+            // Check that all coeff moduli are relatively prime to plain_modulus
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                if (gcd(coeff_modulus[i].value(), plain_modulus.value()) > 1)
+                {
+                    context_data.qualifiers_.parameters_set = false;
+                    return context_data;
+                }
+            }
+
+            // Check that plain_modulus is smaller than total coeff modulus
+            if (!is_less_than_uint_uint(plain_modulus.data(), plain_modulus.uint64_count(),
+                context_data.total_coeff_modulus_.get(), coeff_mod_count))
+            {
+                // Parameters are not valid
+                context_data.qualifiers_.parameters_set = false;
+                return context_data;
+            }
+
+            // Can we use batching? (NTT with plain_modulus)
+            context_data.qualifiers_.using_batching = false;
+            context_data.plain_ntt_tables_ = allocate<SmallNTTTables>(pool_);
+            if (context_data.plain_ntt_tables_->generate(coeff_count_power, plain_modulus))
+            {
+                context_data.qualifiers_.using_batching = true;
+            }
+
+            // Check for plain_lift
+            // If all the small coefficient moduli are larger than plain modulus,
+            // we can quickly lift plain coefficients to RNS form
+            context_data.qualifiers_.using_fast_plain_lift = true;
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                context_data.qualifiers_.using_fast_plain_lift &=
+                    (coeff_modulus[i].value() > plain_modulus.value());
+            }
+
+            // Calculate coeff_div_plain_modulus (BFV-"Delta") and the remainder
+            // upper_half_increment
+            context_data.coeff_div_plain_modulus_ = allocate_uint(coeff_mod_count, pool_);
+            context_data.upper_half_increment_ = allocate_uint(coeff_mod_count, pool_);
+            auto wide_plain_modulus(duplicate_uint_if_needed(plain_modulus.data(),
+                plain_modulus.uint64_count(), coeff_mod_count, false, pool_));
+            divide_uint_uint(context_data.total_coeff_modulus_.get(),
+                wide_plain_modulus.get(), coeff_mod_count,
+                context_data.coeff_div_plain_modulus_.get(),
+                context_data.upper_half_increment_.get(), pool_);
+            // store the non-RNS form of upper_half_increment for BFV encryption
+            context_data.coeff_mod_plain_modulus_ = context_data.upper_half_increment_[0];
+            // Decompose coeff_div_plain_modulus into RNS factors
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                temp[i] = modulo_uint(context_data.coeff_div_plain_modulus_.get(),
+                    coeff_mod_count, coeff_modulus[i], pool_);
+            }
+            set_uint_uint(temp.get(), coeff_mod_count,
+                context_data.coeff_div_plain_modulus_.get());
+
+            // Decompose upper_half_increment into RNS factors
+            for (size_t i = 0; i < coeff_mod_count; i++)
+            {
+                temp[i] = modulo_uint(context_data.upper_half_increment_.get(),
+                    coeff_mod_count, coeff_modulus[i], pool_);
+            }
+            set_uint_uint(temp.get(), coeff_mod_count,
+                context_data.upper_half_increment_.get());
+
+            // Calculate (plain_modulus + 1) / 2.
+            context_data.plain_upper_half_threshold_ = (plain_modulus.value() + 1) >> 1;
+
+            // Calculate coeff_modulus - plain_modulus.
+            context_data.plain_upper_half_increment_ =
+                allocate_uint(coeff_mod_count, pool_);
+            if (context_data.qualifiers_.using_fast_plain_lift)
+            {
+                // Calculate coeff_modulus[i] - plain_modulus if using_fast_plain_lift
+                for (size_t i = 0; i < coeff_mod_count; i++)
+                {
+                    context_data.plain_upper_half_increment_[i] =
+                        coeff_modulus[i].value() - plain_modulus.value();
+                }
+            }
+            else
+            {
+                sub_uint_uint(context_data.total_coeff_modulus(),
+                    wide_plain_modulus.get(), coeff_mod_count,
+                    context_data.plain_upper_half_increment_.get());
+            }
+
+            /* CKKS context info */
+            // CKKS upper_half_threshold for the modulus.
+            context_data.upper_half_threshold_ = allocate_uint(
+                coeff_mod_count, pool_);
+            increment_uint(context_data.total_coeff_modulus(),
+                coeff_mod_count, context_data.upper_half_threshold_.get());
+            right_shift_uint(context_data.upper_half_threshold_.get(), 1,
+                coeff_mod_count, context_data.upper_half_threshold_.get());
+        }
         else
         {
             context_data.qualifiers_.parameters_set = false;
